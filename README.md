@@ -56,3 +56,6 @@ As we do not cache POST requests (like here: https://github.com/DivanteLtd/vue-s
 
 ## Caching does not work
 Make sure you have this bugfix in your PWA: https://github.com/DivanteLtd/vue-storefront/pull/4143
+
+## Invalidate * does not work for category/product
+Make sure it is fixed: https://github.com/DivanteLtd/vue-storefront/issues/4173
