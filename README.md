@@ -2,8 +2,8 @@
 
 By default VSF is able to cache SSR Output in the Redis Cache. This module will Cache Redis Output in the Varnish. So Node.js server is not being used even to load output from Redis. It makes our app's first load even faster!
 
-Example Category's view response time: 1920ms
-Example Category's view response time with Varnish: 16ms
+Example Category's view response time: 1920ms   
+Example Category's view response time with Varnish: 16ms   
 
 Response times are *without HTML minifier* - in development mode. So in production it should be even faster.
 
@@ -52,7 +52,7 @@ http://localhost:3000/invalidate?key=aeSu7aip&tag=*
 ```
 
 ## Do I need varnish-modules?
-As we do not cache POST requests (like here: https://github.com/DivanteLtd/vue-storefront-api/tree/develop/docker/varnish). It is *not* needed.
+As we do not cache POST requests (like here: https://github.com/DivanteLtd/vue-storefront-api/tree/develop/docker/varnish). It is **not** needed.
 
 ## Caching does not work
 Make sure you have this bugfix in your PWA: https://github.com/DivanteLtd/vue-storefront/pull/4143
