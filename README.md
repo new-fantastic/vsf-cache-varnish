@@ -1,4 +1,4 @@
-# Cache Varnish
+# VSF Cache Varnish
 
 By default VSF is able to cache SSR Output in the Redis Cache. This module will Cache Redis Output in the Varnish. So Node.js server is not being used even to load output from Redis. It makes our app's first load even faster!
 
@@ -24,7 +24,7 @@ You should also enable those 2 values in `server` section:
 "useOutputCache": true
 ```
 
-If you are on production, you should set proper addresses in Varnish's config. You can find base config in `src/modules/cache-varnish/docker/varnish/config.vcl`.
+If you are on production, you should set proper addresses in Varnish's config. You can find base config in `src/modules/vsf-cache-varnish/docker/varnish/config.vcl`.
 
 ACL tells Varnish which IP could Purge cache.
 Backend default tells Varnish which IP should it cache.
@@ -33,7 +33,7 @@ We need it as Varnish uses Redis' tags to invalidate.
 
 ## How to test it locally
 1. Run app with `docker-compose up`
-2. Run Varnish with `docker-compose -f src/modules/cache-varnish/docker-compose.varnish.yml up`
+2. Run Varnish with `docker-compose -f src/modules/vsf-cache-varnish/docker-compose.varnish.yml up`
 3. On port :80, you should have Cached with Varnish App. On port :3000 you should have Cached with Redis App.
 
 ## How to install Varnish on VPS?
