@@ -1,0 +1,5 @@
+version: '3.0'
+services:
+  varnish:
+    image: redis:5.0-alpine
+    network_mode: host

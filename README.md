@@ -59,3 +59,18 @@ Make sure you have this bugfix in your PWA: https://github.com/DivanteLtd/vue-st
 
 ## Invalidate * does not work for category/product
 Make sure it is fixed: https://github.com/DivanteLtd/vue-storefront/issues/4173
+
+## Does it work with Fastly?
+I did not anything for that. So probably not. Feel free to prepare PR for that!
+
+## Errors
+Are you getting?:
+```
+app_1  | [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+app_1  |     at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1106:14)
+```
+
+It means you do not have running Redis' instance. The easiest solution that I've prepared for you will be run docker-compose with redis:
+```sh
+docker-compose -f src/modules/vsf-cache-varnish/docker-compose.redis.yml up
+```
