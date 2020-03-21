@@ -36,9 +36,11 @@ sub vcl_recv {
     return (synth(403, "Nothing to do"));
 
   }
- 
-  if (req.method == "GET") {
-    return (hash);
+
+  if (!(req.url ~ "^\/invalidate")) {
+    if (req.method == "GET") {
+      return (hash);
+    }
   }
  
   return (pipe);
@@ -53,6 +55,9 @@ sub vcl_backend_response {
     # Set ban-lurker friendly custom headers.
     if (beresp.http.X-VS-Cache && beresp.http.X-VS-Cache ~ "Miss") {
       unset beresp.http.X-VS-Cache;
+    }
+    if (beresp.http.content-type ~ "text") {
+      set beresp.do_gzip = true;
     }
     set beresp.http.X-Url = bereq.url;
     set beresp.http.X-Host = bereq.http.host;
