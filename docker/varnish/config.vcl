@@ -56,7 +56,7 @@ sub vcl_backend_response {
     if (beresp.http.X-VS-Cache && beresp.http.X-VS-Cache ~ "Miss") {
       unset beresp.http.X-VS-Cache;
     }
-    if (beresp.http.content-type ~ "text") {
+    if (beresp.http.content-type ~ "text" || beresp.http.content-type ~ "json") {
       set beresp.do_gzip = true;
     }
     set beresp.http.X-Url = bereq.url;
