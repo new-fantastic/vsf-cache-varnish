@@ -62,9 +62,9 @@ sub vcl_backend_response {
         set beresp.uncacheable = true;
         return (deliver);
     }
-    if (beresp.http.content-type ~ "text") {
-        set beresp.do_esi = true;
-    }
+    # if (beresp.http.content-type ~ "text") {
+    #     set beresp.do_esi = true;
+    # }
     if (bereq.url ~ "\.js$" || beresp.http.content-type ~ "text" || beresp.http.content-type ~ "json") {
         set beresp.do_gzip = true;
     }
