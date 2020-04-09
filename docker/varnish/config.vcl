@@ -54,17 +54,11 @@ sub vcl_hash {
 sub vcl_backend_response {
     # Set ban-lurker friendly custom headers.
     if (beresp.http.X-VS-Cache && beresp.http.X-VS-Cache ~ "Miss") {
+      # It is required
+      set beresp.ttl = 1s;
       unset beresp.http.X-VS-Cache;
     }
-    # cache only successfully responses and 404s
-    if (beresp.status != 200 && beresp.status != 404) {
-        set beresp.ttl = 0s;
-        set beresp.uncacheable = true;
-        return (deliver);
-    }
-    # if (beresp.http.content-type ~ "text") {
-    #     set beresp.do_esi = true;
-    # }
+
     if (bereq.url ~ "\.js$" || beresp.http.content-type ~ "text" || beresp.http.content-type ~ "json") {
         set beresp.do_gzip = true;
     }

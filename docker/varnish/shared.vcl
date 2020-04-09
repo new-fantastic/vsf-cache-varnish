@@ -1,21 +1,9 @@
-
-
 vcl 4.0;
 
 import std;
 # import bodyaccess;
 
 # One config for API + Cache on one machine
-# Ton nginx i've added
-        # location /invalidate/ {
-        #         proxy_set_header 'X-Target' 'API';
-        #         proxy_set_header 'Access-Control-Allow-Origin' '*';
-        #         proxy_set_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, PUT, DELETE';
-        #         proxy_set_header 'Access-Control-Allow-Headers' 'X-Requested-With,Accept,Content-Type, Origin';
-
-        #         proxy_pass http://localhost:8080/invalidate/;
-        # }
-
  
 acl purge {
   "localhost";   // IP which can BAN cache - it should be PWA's IP
@@ -62,18 +50,8 @@ sub vcl_recv {
   # This custom header allows me to distuinguish target for /invalidate while using nginx proxy
   if (req.url ~ "^/api/" || req.http.X-Target ~ "API") {
     set req.backend_hint = api;
-  } else {
-    set req.backend_hint = default;
-  }
-
-  if (req.backend_hint == api) {
+    set req.http.X-Backend = "api";
     if (req.url ~ "^\/api\/catalog\/") {
-      # if (req.method == "POST") {
-      #   # It will allow me to cache by req body in the vcl_hash
-      #   std.cache_req_body(500KB);
-      #   set req.http.X-Body-Len = bodyaccess.len_req_body();
-      # }
-  
       if ((req.method == "GET")) {
         return (hash);
       }
@@ -85,12 +63,13 @@ sub vcl_recv {
         return (hash);
       }
     }
-  }
 
-  if (!(req.url ~ "^\/invalidate")) {
-    if (req.method == "GET") {
-      return (hash);
-    }
+  } else {
+    set req.backend_hint = default;
+    set req.http.X-Backend = "pwa";
+      if (req.method == "GET") {
+        return (hash);
+      }
   }
  
   return (pipe);
@@ -98,37 +77,16 @@ sub vcl_recv {
 }
  
 sub vcl_hash {
-  # To cache POST and PUT requests
-  # if (req.http.X-Body-Len) {
-  #   bodyaccess.hash_req_body();
-  # } else {
-    hash_data("");
-  # }
-}
-
-sub vcl_backend_fetch {
-    if (bereq.http.X-Body-Len) {
-      set bereq.method = "POST";
-    }
+  hash_data(req.http.X-Backend);
 }
  
 sub vcl_backend_response {
     # Set ban-lurker friendly custom headers.
     if (beresp.http.X-VS-Cache && beresp.http.X-VS-Cache ~ "Miss") {
-      unset beresp.http.X-VS-Cache;
+      # It is required
+      set beresp.ttl = 1s;
+      return (deliver);
     }
-    # cache only successfully responses and 404s
-    if (beresp.status != 200 && beresp.status != 404) {
-        set beresp.ttl = 0s;
-        set beresp.uncacheable = true;
-        return (deliver);
-    }
-    if (bereq.url ~ "^\/api\/stock\/") {
-      set beresp.ttl = 900s; // 15 minutes
-    }
-    # if (beresp.http.content-type ~ "text") {
-    #     set beresp.do_esi = true;
-    # }
     if (bereq.url ~ "\.js$" || beresp.http.content-type ~ "text" || beresp.http.content-type ~ "json") {
         set beresp.do_gzip = true;
     }
@@ -154,5 +112,6 @@ sub vcl_deliver {
     unset resp.http.X-Host;
     # Comment these for easier Drupal cache tag debugging in development.
     unset resp.http.X-Cache-Tags;
+    unset resp.http.X-Powered-By;
     unset resp.http.X-Cache-Contexts;
 }
