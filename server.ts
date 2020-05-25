@@ -5,6 +5,9 @@ import config from 'config'
 import cache from '@vue-storefront/core/scripts/utils/cache-instance'
 
 const cloudflareUrlsToPurge = []
+// It says - max length equals 30
+// https://api.cloudflare.com/#zone-purge-files-by-url
+const cloudflareMaxChunkSize = 30
 const cloudflarePurge = config.varnish && config.varnish.enabled && config.varnish.cloudflare && config.varnish.cloudflare.purge
 const cloudflarePurgeRequest = async(urls: Array<string>): Promise<Response> => {
   const { zoneIdentifier, key } = config.varnish.cloudflare
@@ -34,8 +37,8 @@ if (cloudflarePurge) {
       promises.push(
         cache.get(tagUrlMap)
         .then(output => {
-          const reqUrl = config.server.baseUrl + req.originalUrl.startsWith('/') ? req.originalUrl.substr(1) : req.originalUrl;
-          
+          const reqUrl = config.server.baseUrl + 
+            (req.originalUrl.startsWith('/') ? req.originalUrl.substr(1) : req.originalUrl);
           cache.set(
             tagUrlMap,
             output === null ? [reqUrl] : Array.from(new Set([...output, reqUrl])),
@@ -82,14 +85,14 @@ serverHooks.beforeCacheInvalidated(async ({ tags, req }) => {
           }
         }
 
-        fetch(`http://${config.get('varnish.host')}:${config.get('varnish.port')}`, {
-          method: 'BAN',
-          headers: {
-            'X-VS-Cache-Tag': tag
-          } 
-        })
-        .then(response => response.text())
-        .then(text => {
+        try {
+          let text = await (await fetch(`http://${config.get('varnish.host')}:${config.get('varnish.port')}`, {
+            method: 'BAN',
+            headers: {
+              'X-VS-Cache-Tag': tag
+            } 
+          })).text()
+
           if (text && text.includes('200 Ban added')) {
             console.log(
               `Tags invalidated successfully for [${tag}] in the Varnish`
@@ -98,23 +101,38 @@ serverHooks.beforeCacheInvalidated(async ({ tags, req }) => {
             console.log(text)
             console.error(`Couldn't ban tag: ${tag} in the Varnish`);
           }
-        })
+
+        } catch (err) {
+          console.error(err)
+        }
+
     } else {
       console.error(`Invalid tag name ${tag}`)
     }
   }
 
   if (cloudflarePurge && cloudflareUrlsToPurge.length) {
-    try {
-      let response = await (await cloudflarePurgeRequest(cloudflareUrlsToPurge)).json()
-      if (response.success) {
-        console.log('Cloudflare Purge Success:', response)
-      } else {
-        console.log('Cloudflare Purge Error:', response)
+    let uniqueCloudflareUrlsToPurge = Array.from(new Set(cloudflareUrlsToPurge))
+    do {
+      const chunk = uniqueCloudflareUrlsToPurge.slice(0, cloudflareMaxChunkSize)
+      console.log('Sending chunk', chunk)
+      try {
+        let response = await (await cloudflarePurgeRequest(chunk)).json()
+        if (response.success) {
+          console.log('Cloudflare Purge Success:', response)
+        } else {
+          console.log('Cloudflare Purge Error:', response)
+        }
+      } catch (err) {
+        console.log('Cloudflare Purge Error:', err)
       }
-    } catch (err) {
-      console.log('Cloudflare Purge Error:', err)
-    }
+
+      if (uniqueCloudflareUrlsToPurge.length > cloudflareMaxChunkSize) {
+        uniqueCloudflareUrlsToPurge = uniqueCloudflareUrlsToPurge.slice(cloudflareMaxChunkSize)
+      } else {
+        uniqueCloudflareUrlsToPurge = []
+      }
+    } while (uniqueCloudflareUrlsToPurge.length > 0);
   }
 
 })
