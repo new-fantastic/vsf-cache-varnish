@@ -34,7 +34,7 @@ if (cloudflarePurge) {
       promises.push(
         cache.get(tagUrlMap)
         .then(output => {
-          const reqUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
+          const reqUrl = config.server.baseUrl + req.originalUrl.startsWith('/') ? req.originalUrl.substr(1) : req.originalUrl;
           
           cache.set(
             tagUrlMap,
