@@ -2,66 +2,6 @@ import { serverHooks } from '@vue-storefront/core/server/hooks'
 import fetch from 'isomorphic-fetch'
 import config from 'config'
 
-import cache from '@vue-storefront/core/scripts/utils/cache-instance'
-
-const cloudflareUrlsToPurge = []
-// It says - max length equals 30
-// https://api.cloudflare.com/#zone-purge-files-by-url
-const cloudflareMaxChunkSize = 30
-const cloudflarePurge = config.varnish && config.varnish.enabled && config.varnish.cloudflare && config.varnish.cloudflare.purge
-const cloudflarePurgeRequest = async(urls: Array<string>): Promise<Response> => {
-  const { zoneIdentifier, key } = config.varnish.cloudflare
-  return await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneIdentifier}/purge_cache`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${key}`
-    },
-    body: JSON.stringify({
-      files: urls
-    })
-  })
-}
-
-// There I will create (Tag -> URL) Map in Redis Cache
-// So then I will be able to refresh certain URL based on requested Tags in CDN
-if (cloudflarePurge) {
-  serverHooks.beforeOutputRenderedResponse(({ output, req, context }) => {  
-    const tagsArray = Array.from(context.output.cacheTags)
-    const site = req.headers['x-vs-store-code'] || 'main'
-  
-    const promises = []
-  
-    for (let tag of tagsArray) {
-      const tagUrlMap = `cloudflare:${site}:${tag}`
-      promises.push(
-        cache.get(tagUrlMap)
-        .then(output => {
-          const reqUrl = config.server.baseUrl + 
-            (req.originalUrl.startsWith('/') ? req.originalUrl.substr(1) : req.originalUrl);
-          cache.set(
-            tagUrlMap,
-            output === null ? [reqUrl] : Array.from(new Set([...output, reqUrl])),
-            tagsArray
-          ).catch(err => {
-            console.log(`Could not save '${tag}' tag's URL`, err)
-          })
-        }).catch(err => {
-          console.log(`Could not read '${tag}' tag's URL`, err)
-        })
-      )
-    }
-  
-    Promise.all(promises).then(() => {
-      console.log('Succesfully saved tag\'s URL', tagsArray)
-    }).catch(err => {
-      console.log('Failed while saving tag\'s URL', err)
-    })
-  
-    return output
-  })
-}
-
 serverHooks.beforeCacheInvalidated(async ({ tags, req }) => {
   if (!config.get('varnish.enabled') || !config.get('server.useOutputCache') || !config.get('server.useOutputCacheTagging')) {
     return

@@ -74,3 +74,37 @@ It means you do not have running Redis' instance. The easiest solution that I've
 ```sh
 docker-compose -f src/modules/vsf-cache-varnish/docker-compose.redis.yml up
 ```
+
+## How to forward purge request to Cloudflare?
+You might use CDN not only to serve dist & assets directory but also SSR Output. In this case, you will want to dynamicly purge cache in Cloudflare when it is being purged in Varnish. For that, you need to add `cloudflare` section to varnish configuration in the PWA:
+```
+"varnish": {
+    "enabled": true,
+    "host": "localhost",
+    "port": 80,
+    "cloudflare": {
+      "purge": true,
+      "key": "someKey",
+      "zoneIdentifier": "someZoneIdentifier"
+    }
+  },
+```
+
+`purge` should be equal `true`
+To get `key` open: https://dash.cloudflare.com/profile/api-tokens and create a token.   
+It is important to select `Create Custom Token` option, then in the permissions section set `Zone` - `Cache Purge` - `Purge`. For test purposes, I recommend to do not enable IP Address Filtering and set long enought TTL. Then `Continue to summary` and you will se your key.
+
+To get `zoneIdentifier` open: https://dash.cloudflare.com/ - scroll down and in the right panel you should see `API` and `Zone ID` - that's it.
+
+You should also add `config.server.baseUrl` field in your config. Url must end with `/`, e.g.:
+```
+{
+  "server": {
+    // ...
+    "trace": {
+      "enabled": false,
+      "config": {}
+    },
+    "baseUrl" : "https://my-super-fast-ecommerce-shop.com/"
+  },
+  ```
