@@ -5,12 +5,12 @@ vcl 4.0;
 import std;
  
 acl purge {
-  "localhost";   // IP which can BAN cache - it should be PWA's IP
+  "app";   // IP which can BAN cache - it should be PWA's IP
 }
 
 
 backend default {
-  .host = "localhost";
+  .host = "app";
   .port = "3000";
 }
  
