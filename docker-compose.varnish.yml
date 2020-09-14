@@ -2,6 +2,7 @@ version: '3.0'
 services:
   varnish:
     image: cooptilleuls/varnish:6.0-stretch
-    network_mode: host
     volumes:
       - ./docker/varnish/config.vcl:/usr/local/etc/varnish/default.vcl
+    ports:
+      - '80:80'
