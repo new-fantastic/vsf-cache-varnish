@@ -48,9 +48,13 @@ sub vcl_recv {
 
   # Choose backend
   # This custom header allows me to distuinguish target for /invalidate while using nginx proxy
-  if (req.url ~ "^/api/" || req.http.X-Target ~ "API") {
+  if (req.url ~ "^/api/" || req.url ~ "^/img/" || req.http.X-Target ~ "API") {
     set req.backend_hint = api;
     set req.http.X-Backend = "api";
+    if (req.url ~ "^/img/") {
+      return (pipe);
+    }
+    
     if (req.url ~ "^\/api\/catalog\/") {
       if ((req.method == "GET")) {
         return (hash);
